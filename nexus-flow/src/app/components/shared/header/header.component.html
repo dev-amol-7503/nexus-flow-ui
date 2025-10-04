@@ -1,0 +1,60 @@
+<header class="header">
+  <div class="header-content">
+    <div class="header-left">
+      <button class="btn btn-icon sidebar-toggle" (click)="onToggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="breadcrumb">
+        <ng-content select="[breadcrumb]"></ng-content>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <!-- Notifications -->
+      <div class="header-item dropdown">
+        <button class="btn btn-icon" data-bs-toggle="dropdown">
+          <i class="fas fa-bell"></i>
+          <span class="badge bg-danger">3</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end">
+          <h6 class="dropdown-header">Notifications</h6>
+          <a class="dropdown-item" href="#">
+            <i class="fas fa-tasks text-primary me-2"></i>
+            New task assigned
+          </a>
+          <a class="dropdown-item" href="#">
+            <i class="fas fa-project-diagram text-success me-2"></i>
+            Project deadline approaching
+          </a>
+          <a class="dropdown-item" href="#">
+            <i class="fas fa-users text-info me-2"></i>
+            Team meeting scheduled
+          </a>
+        </div>
+      </div>
+
+      <!-- User Menu -->
+      <div class="header-item dropdown">
+        <button class="btn btn-user" (click)="toggleUserMenu()">
+          <img [src]="currentUser()?.avatar || 'assets/images/default-avatar.png'" 
+               class="user-avatar" 
+               alt="User Avatar">
+          <span class="user-name">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end" [class.show]="showUserMenu()">
+          <a class="dropdown-item" routerLink="/profile">
+            <i class="fas fa-user me-2"></i>Profile
+          </a>
+          <a class="dropdown-item" href="#">
+            <i class="fas fa-cog me-2"></i>Settings
+          </a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item text-danger" (click)="logout()">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

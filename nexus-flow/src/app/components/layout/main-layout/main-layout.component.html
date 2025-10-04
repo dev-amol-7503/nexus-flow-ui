@@ -1,0 +1,116 @@
+<!-- Main layout structure with sidebar and content area -->
+<div class="layout-container">
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.sidebar-collapsed]="!sidebarOpen()">
+    <div class="sidebar-header">
+      <h2 class="logo" *ngIf="sidebarOpen()">
+        <i class="fas fa-project-diagram me-2"></i>
+        NexusFlow
+      </h2>
+      <button class="btn btn-sm btn-outline-secondary toggle-btn" (click)="toggleSidebar()">
+        <i class="fas" [class.fa-chevron-left]="sidebarOpen()" [class.fa-chevron-right]="!sidebarOpen()"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-tachometer-alt"></i>
+            <span *ngIf="sidebarOpen()">Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/projects" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-briefcase"></i>
+            <span *ngIf="sidebarOpen()">Projects</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a routerLink="/tasks" routerLinkActive="active" class="nav-link">
+            <i class="fas fa-tasks"></i>
+            <span *ngIf="sidebarOpen()">Tasks</span>
+          </a>
+        </li>
+        
+        <!-- Admin only menu items -->
+        @if (hasRole('ADMIN')) {
+          <li class="nav-section" *ngIf="sidebarOpen()">
+            <span class="section-label">Administration</span>
+          </li>
+          <li class="nav-item">
+            <a routerLink="/admin" routerLinkActive="active" class="nav-link">
+              <i class="fas fa-cogs"></i>
+              <span *ngIf="sidebarOpen()">Admin Panel</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Mobile Overlay -->
+  @if (!sidebarOpen()) {
+    <div class="sidebar-overlay" (click)="toggleSidebar()"></div>
+  }
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar">
+      <div class="navbar-content">
+        <div class="navbar-left">
+          <button class="btn btn-icon sidebar-toggle-mobile me-3" (click)="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h4 class="page-title">
+            <ng-content select="[pageTitle]"></ng-content>
+          </h4>
+        </div>
+        
+        <div class="navbar-right">
+          <!-- Notifications -->
+          <div class="nav-item dropdown">
+            <button class="btn btn-light btn-icon dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="fas fa-bell"></i>
+              <span class="badge bg-danger">3</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <h6 class="dropdown-header">Notifications</h6>
+              <a class="dropdown-item" href="#">New task assigned</a>
+              <a class="dropdown-item" href="#">Project deadline approaching</a>
+              <a class="dropdown-item" href="#">Team meeting scheduled</a>
+            </div>
+          </div>
+
+          <!-- User Menu -->
+          <div class="nav-item dropdown">
+            <button class="btn btn-light dropdown-toggle user-menu" data-bs-toggle="dropdown">
+              <img [src]="currentUser()?.avatar || 'assets/images/default-avatar.png'" 
+                   class="user-avatar" 
+                   alt="User Avatar">
+              <span class="user-name">{{ currentUser()?.firstName }} {{ currentUser()?.lastName }}</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <a class="dropdown-item" routerLink="/profile">
+                <i class="fas fa-user me-2"></i>Profile
+              </a>
+              <a class="dropdown-item" href="#">
+                <i class="fas fa-cog me-2"></i>Settings
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item text-danger" (click)="logout()">
+                <i class="fas fa-sign-out-alt me-2"></i>Logout
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="content-area">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>

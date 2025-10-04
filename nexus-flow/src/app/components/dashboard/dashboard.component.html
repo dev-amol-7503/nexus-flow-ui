@@ -1,0 +1,201 @@
+<!-- Dashboard with overview cards and recent activities -->
+<div class="dashboard-container">
+  <!-- Page Header -->
+  <div class="page-header mb-4">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">Welcome back! Here's what's happening today.</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="row g-4 mb-5" *ngIf="!isLoading() && stats()">
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card stat-card-primary">
+        <div class="stat-icon">
+          <i class="fas fa-briefcase"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ stats()?.totalProjects || 0 }}</h3>
+          <p class="stat-label">Total Projects</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card stat-card-success">
+        <div class="stat-icon">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ stats()?.completedTasks || 0 }}</h3>
+          <p class="stat-label">Completed Tasks</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card stat-card-warning">
+        <div class="stat-icon">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ stats()?.pendingTasks || 0 }}</h3>
+          <p class="stat-label">Pending Tasks</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+      <div class="stat-card stat-card-info">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ stats()?.teamMembers || 0 }}</h3>
+          <p class="stat-label">Team Members</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="row g-4">
+    <!-- Recent Projects -->
+    <div class="col-xl-6">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-briefcase me-2"></i>
+            Recent Projects
+          </h5>
+          <a routerLink="/projects" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+          <div *ngIf="recentProjects().length === 0" class="empty-state">
+            <i class="fas fa-inbox empty-icon"></i>
+            <p>No projects yet</p>
+            <a routerLink="/projects" class="btn btn-primary">Create Project</a>
+          </div>
+          
+          <div class="project-list" *ngIf="recentProjects().length > 0">
+            <div *ngFor="let project of recentProjects()" class="project-item">
+              <div class="project-info">
+                <h6 class="project-name">{{ project.name }}</h6>
+                <p class="project-description">{{ project.description }}</p>
+                <div class="project-meta">
+                  <span class="badge" [ngClass]="getStatusClass(project.status)">
+                    {{ project.status }}
+                  </span>
+                  <span class="text-muted">
+                    <i class="fas fa-calendar me-1"></i>
+                    {{ project.startDate | date }}
+                  </span>
+                </div>
+              </div>
+              <div class="project-actions">
+                <a [routerLink]="['/projects', project.id]" class="btn btn-sm btn-outline-secondary">
+                  View
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Tasks -->
+    <div class="col-xl-6">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-tasks me-2"></i>
+            My Tasks
+          </h5>
+          <a routerLink="/tasks" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body">
+          <div *ngIf="myTasks().length === 0" class="empty-state">
+            <i class="fas fa-check-circle empty-icon"></i>
+            <p>No tasks assigned</p>
+          </div>
+          
+          <div class="task-list" *ngIf="myTasks().length > 0">
+            <div *ngFor="let task of myTasks()" class="task-item">
+              <div class="task-checkbox">
+                <input type="checkbox" [checked]="task.status === 'DONE'" (change)="toggleTask(task)">
+              </div>
+              <div class="task-content">
+                <h6 class="task-title">{{ task.title }}</h6>
+                <p class="task-project">{{ task.project.name }}</p>
+                <div class="task-meta">
+                  <span class="badge" [ngClass]="getPriorityClass(task.priority)">
+                    {{ task.priority }}
+                  </span>
+                  <span *ngIf="task.dueDate" class="due-date" [class.overdue]="isOverdue(task.dueDate)">
+                    <i class="fas fa-clock me-1"></i>
+                    {{ task.dueDate | date }}
+                  </span>
+                </div>
+              </div>
+              <div class="task-actions">
+                <button class="btn btn-sm btn-outline-secondary">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-12">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h5 class="card-title">
+            <i class="fas fa-bolt me-2"></i>
+            Quick Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="quick-actions">
+            <a routerLink="/projects" class="quick-action-item">
+              <div class="action-icon">
+                <i class="fas fa-plus"></i>
+              </div>
+              <span>New Project</span>
+            </a>
+            
+            <a routerLink="/tasks" class="quick-action-item">
+              <div class="action-icon">
+                <i class="fas fa-tasks"></i>
+              </div>
+              <span>Create Task</span>
+            </a>
+            
+            <a href="#" class="quick-action-item">
+              <div class="action-icon">
+                <i class="fas fa-chart-bar"></i>
+              </div>
+              <span>View Reports</span>
+            </a>
+            
+            <a href="#" class="quick-action-item">
+              <div class="action-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <span>Team Management</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Loading dashboard...</p>
+  </div>
+</div>

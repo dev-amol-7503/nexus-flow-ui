@@ -1,0 +1,170 @@
+<!-- Project list with advanced filtering and search -->
+<div class="project-list-container">
+  <!-- Page Header -->
+  <div class="page-header mb-4">
+    <div class="header-content">
+      <div class="header-text">
+        <h1 class="page-title">Projects</h1>
+        <p class="page-subtitle">Manage and track all your projects in one place</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" routerLink="/projects/new">
+          <i class="fas fa-plus me-2"></i>New Project
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Search -->
+  <div class="filters-card mb-4">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Search projects..."
+            [value]="searchTerm()"
+            (input)="searchTerm.set($any($event.target).value); onSearchChange()">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select 
+          class="form-select" 
+          [value]="statusFilter()"
+          (change)="statusFilter.set($any($event.target).value); onStatusFilterChange()">
+          <option *ngFor="let option of statusOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select 
+          class="form-select" 
+          [value]="priorityFilter()"
+          (change)="priorityFilter.set($any($event.target).value); onPriorityFilterChange()">
+          <option *ngFor="let option of priorityOptions" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" (click)="clearFilters()">
+          <i class="fas fa-refresh me-2"></i>Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projects Grid -->
+  <div class="projects-grid">
+    <!-- Loading State -->
+    <div *ngIf="isLoading()" class="loading-state">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p>Loading projects...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading() && filteredProjects().length === 0" class="empty-state">
+      <i class="fas fa-briefcase empty-icon"></i>
+      <h4>No projects found</h4>
+      <p>Get started by creating your first project</p>
+      <button class="btn btn-primary" routerLink="/projects/new">
+        <i class="fas fa-plus me-2"></i>Create Project
+      </button>
+    </div>
+
+    <!-- Projects Cards -->
+    <div class="row g-4" *ngIf="!isLoading() && filteredProjects().length > 0">
+      <div class="col-xl-4 col-lg-6" *ngFor="let project of filteredProjects()">
+        <div class="project-card">
+          <div class="project-header">
+            <div class="project-title-section">
+              <h5 class="project-name">{{ project.name }}</h5>
+              <span class="project-code">{{ project.code }}</span>
+            </div>
+            <div class="project-actions dropdown">
+              <button class="btn btn-sm btn-icon" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end">
+                <a class="dropdown-item" [routerLink]="['/projects', project.id]">
+                  <i class="fas fa-eye me-2"></i>View Details
+                </a>
+                <a class="dropdown-item" href="#">
+                  <i class="fas fa-edit me-2"></i>Edit Project
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-danger" (click)="deleteProject(project.id)">
+                  <i class="fas fa-trash me-2"></i>Delete
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <p class="project-description">{{ project.description }}</p>
+
+          <div class="project-progress">
+            <div class="progress-info">
+              <span class="progress-label">Progress</span>
+              <span class="progress-value">{{ getProgress(project) }}%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar" [style.width.%]="getProgress(project)"></div>
+            </div>
+          </div>
+
+          <div class="project-meta">
+            <div class="meta-item">
+              <i class="fas fa-tasks"></i>
+              <span>{{ project.tasks.length }} tasks</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-users"></i>
+              <span>{{ project.teamMembers.length }} members</span>
+            </div>
+          </div>
+
+          <div class="project-footer">
+            <div class="project-tags">
+              <span class="badge" [ngClass]="getStatusClass(project.status)">
+                {{ project.status }}
+              </span>
+              <span class="badge" [ngClass]="getPriorityClass(project.priority)">
+                {{ project.priority }}
+              </span>
+            </div>
+            <div class="project-dates">
+              <small class="text-muted">
+                Due: {{ project.endDate ? (project.endDate | date) : 'No deadline' }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination-section mt-4" *ngIf="!isLoading() && filteredProjects().length > 0">
+    <nav>
+      <ul class="pagination justify-content-center">
+        <li class="page-item" [class.disabled]="currentPage() === 0">
+          <a class="page-link" (click)="onPageChange(currentPage() - 1)">Previous</a>
+        </li>
+        
+        <li class="page-item" *ngFor="let page of [].constructor(totalPages()); let i = index"
+            [class.active]="i === currentPage()">
+          <a class="page-link" (click)="onPageChange(i)">{{ i + 1 }}</a>
+        </li>
+        
+        <li class="page-item" [class.disabled]="currentPage() === totalPages() - 1">
+          <a class="page-link" (click)="onPageChange(currentPage() + 1)">Next</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>

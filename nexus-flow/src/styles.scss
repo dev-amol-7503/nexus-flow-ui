@@ -1,0 +1,421 @@
+/* Global Styles for NexusFlow Application - IMPROVED COLOR SCHEME */
+@import 'bootstrap/scss/bootstrap';
+@import '@fortawesome/fontawesome-free/css/all.css';
+
+/* Improved Custom Variables with Better Contrast */
+:root {
+  --primary-color: #4f46e5;
+  --primary-dark: #4338ca;
+  --primary-light: #818cf8;
+  --secondary-color: #7c3aed;
+  --success-color: #059669;
+  --warning-color: #d97706;
+  --danger-color: #dc2626;
+  --dark-color: #1f2937;
+  --darker-color: #111827;
+  --light-color: #f8fafc;
+  --lighter-color: #ffffff;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  --border-radius: 12px;
+  --box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --transition: all 0.3s ease;
+}
+
+/* Global Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--light-color);
+  color: var(--gray-800); // Better contrast
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* Improved Typography for Better Readability */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--gray-900);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.75rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+h4 {
+  font-size: 1.25rem;
+}
+
+h5 {
+  font-size: 1.125rem;
+}
+
+h6 {
+  font-size: 1rem;
+}
+
+p {
+  color: var(--gray-700);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+/* Improved Sidebar Colors */
+.sidebar {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+  
+  .nav-link {
+    color: rgba(255,255,255,0.9); // Better contrast
+    
+    &:hover {
+      color: white;
+      background: rgba(255,255,255,0.15);
+    }
+    
+    &.active {
+      color: white;
+      background: rgba(255,255,255,0.2);
+    }
+  }
+  
+  .section-label {
+    color: rgba(255,255,255,0.8) !important; // Better visibility
+  }
+}
+
+/* Improved Card and Background Colors */
+.card {
+  background: var(--lighter-color);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-800);
+  
+  .card-title {
+    color: var(--gray-900);
+  }
+  
+  .card-text {
+    color: var(--gray-700);
+  }
+}
+
+/* Improved Form Controls */
+.form-control {
+  background: var(--lighter-color);
+  border: 2px solid var(--gray-300);
+  color: var(--gray-800);
+  
+  &:focus {
+    background: var(--lighter-color);
+    border-color: var(--primary-color);
+    color: var(--gray-900);
+    box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.1);
+  }
+  
+  &::placeholder {
+    color: var(--gray-500);
+  }
+}
+
+.form-label {
+  color: var(--gray-700);
+  font-weight: 500;
+}
+
+/* Improved Button Colors */
+.btn {
+  font-weight: 500;
+  
+  &.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    color: white;
+    
+    &:hover, &:focus {
+      background: linear-gradient(135deg, var(--primary-dark), var(--secondary-color));
+      color: white;
+    }
+  }
+  
+  &.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    
+    &:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+  }
+}
+
+/* Improved Table Colors */
+.table {
+  color: var(--gray-700);
+  
+  thead th {
+    background: var(--gray-100);
+    color: var(--gray-900);
+    border-bottom: 2px solid var(--gray-300);
+    font-weight: 600;
+  }
+  
+  tbody td {
+    border-bottom: 1px solid var(--gray-200);
+  }
+}
+
+/* Improved Alert Colors with Better Contrast */
+.alert {
+  border: none;
+  border-left: 4px solid transparent;
+  
+  &.alert-danger {
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--danger-color);
+    border-left-color: var(--danger-color);
+  }
+  
+  &.alert-success {
+    background: rgba(5, 150, 105, 0.08);
+    color: var(--success-color);
+    border-left-color: var(--success-color);
+  }
+  
+  &.alert-warning {
+    background: rgba(217, 119, 6, 0.08);
+    color: var(--warning-color);
+    border-left-color: var(--warning-color);
+  }
+  
+  &.alert-info {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--primary-color);
+    border-left-color: var(--primary-color);
+  }
+}
+
+/* Improved Badge Colors */
+.badge {
+  font-weight: 500;
+  
+  &.bg-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+  }
+  
+  &.bg-success {
+    background-color: var(--success-color) !important;
+  }
+  
+  &.bg-warning {
+    background-color: var(--warning-color) !important;
+    color: var(--gray-900);
+  }
+  
+  &.bg-danger {
+    background-color: var(--danger-color) !important;
+  }
+  
+  &.bg-secondary {
+    background-color: var(--gray-500) !important;
+  }
+}
+
+/* Improved Text Colors for Better Contrast */
+.text-muted {
+  color: var(--gray-600) !important; // Darker for better readability
+}
+
+.text-dark {
+  color: var(--gray-900) !important;
+}
+
+.text-white {
+  color: white !important;
+}
+
+/* Status and Priority Badges with Better Colors */
+.status-completed {
+  background: var(--success-color) !important;
+  color: white !important;
+}
+
+.status-in-progress {
+  background: #2563eb !important; // Blue instead of teal
+  color: white !important;
+}
+
+.status-planning {
+  background: var(--gray-600) !important;
+  color: white !important;
+}
+
+.status-on-hold {
+  background: var(--warning-color) !important;
+  color: var(--gray-900) !important;
+}
+
+.priority-high {
+  background: var(--danger-color) !important;
+  color: white !important;
+}
+
+.priority-urgent {
+  background: #991b1b !important; // Darker red
+  color: white !important;
+}
+
+.priority-medium {
+  background: var(--warning-color) !important;
+  color: var(--gray-900) !important;
+}
+
+.priority-low {
+  background: var(--gray-500) !important;
+  color: white !important;
+}
+
+/* Improved Dashboard Stats Cards */
+.stat-card {
+  background: var(--lighter-color);
+  color: var(--gray-800);
+  
+  .stat-value {
+    color: var(--gray-900);
+  }
+  
+  .stat-label {
+    color: var(--gray-600);
+  }
+}
+
+/* Improved Navigation */
+.nav-tabs {
+  .nav-link {
+    color: var(--gray-600);
+    
+    &:hover {
+      color: var(--primary-color);
+    }
+    
+    &.active {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+  }
+}
+
+/* Improved Dropdowns */
+.dropdown-menu {
+  background: var(--lighter-color);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-800);
+  
+  .dropdown-item {
+    color: var(--gray-700);
+    
+    &:hover {
+      background: var(--gray-100);
+      color: var(--gray-900);
+    }
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-400);
+  border-radius: 4px;
+  
+  &:hover {
+    background: var(--gray-500);
+  }
+}
+
+/* Utility Classes */
+.bg-light {
+  background-color: var(--gray-100) !important;
+}
+
+.border {
+  border-color: var(--gray-200) !important;
+}
+
+/* Dark mode support preparation */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --light-color: #111827;
+    --lighter-color: #1f2937;
+    --gray-100: #374151;
+    --gray-200: #4b5563;
+    --gray-300: #6b7280;
+    --gray-400: #9ca3af;
+    --gray-500: #d1d5db;
+    --gray-600: #e5e7eb;
+    --gray-700: #f3f4f6;
+    --gray-800: #f9fafb;
+    --gray-900: #ffffff;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #0000ff;
+    --secondary-color: #000080;
+    --gray-800: #000000;
+    --gray-900: #000000;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  html {
+    font-size: 13px;
+  }
+}

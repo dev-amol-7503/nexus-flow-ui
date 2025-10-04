@@ -1,0 +1,402 @@
+<!-- Admin panel for system management -->
+<div class="admin-panel-container">
+  <!-- Page Header -->
+  <div class="page-header mb-4">
+    <h1 class="page-title">Admin Panel</h1>
+    <p class="page-subtitle">Manage users, roles, and system configuration</p>
+  </div>
+
+  <!-- System Statistics -->
+  <div class="row g-4 mb-5">
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="stat-card stat-card-primary">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ systemStats().totalUsers }}</h3>
+          <p class="stat-label">Total Users</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="stat-card stat-card-success">
+        <div class="stat-icon">
+          <i class="fas fa-user-check"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ systemStats().activeUsers }}</h3>
+          <p class="stat-label">Active Users</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="stat-card stat-card-info">
+        <div class="stat-icon">
+          <i class="fas fa-briefcase"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ systemStats().totalProjects }}</h3>
+          <p class="stat-label">Projects</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="stat-card stat-card-warning">
+        <div class="stat-icon">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ systemStats().totalTasks }}</h3>
+          <p class="stat-label">Tasks</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="stat-card stat-card-secondary">
+        <div class="stat-icon">
+          <i class="fas fa-hdd"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ systemStats().storageUsed }}</h3>
+          <p class="stat-label">Storage Used</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-2 col-md-4 col-6">
+      <div class="stat-card stat-card-dark">
+        <div class="stat-icon">
+          <i class="fas fa-server"></i>
+        </div>
+        <div class="stat-content">
+          <h3 class="stat-value">{{ systemStats().systemUptime }}</h3>
+          <p class="stat-label">System Uptime</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="admin-tabs mb-4">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab() === 'users'" 
+           (click)="setActiveTab('users')">
+          <i class="fas fa-users me-2"></i>User Management
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab() === 'roles'" 
+           (click)="setActiveTab('roles')">
+          <i class="fas fa-user-shield me-2"></i>Role Management
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab() === 'system'" 
+           (click)="setActiveTab('system')">
+          <i class="fas fa-cogs me-2"></i>System Settings
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" [class.active]="activeTab() === 'audit'" 
+           (click)="setActiveTab('audit')">
+          <i class="fas fa-clipboard-list me-2"></i>Audit Log
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- User Management Tab -->
+  <div *ngIf="activeTab() === 'users'" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <div class="header-actions">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              class="form-control search-input"
+              placeholder="Search users..."
+              [value]="searchTerm()"
+              (input)="handleSearchInput($event)">
+          </div>
+          <button class="btn btn-primary" (click)="openUserModal()">
+            <i class="fas fa-plus me-2"></i>Add User
+          </button>
+        </div>
+      </div>
+      
+      <div class="card-body">
+        <!-- Loading State -->
+        <div *ngIf="isLoading()" class="loading-state">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p>Loading users...</p>
+        </div>
+
+        <!-- Users Table -->
+        <div *ngIf="!isLoading()" class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of filteredUsers()">
+                <td>
+                  <div class="user-info">
+                    <img [src]="user.avatar || 'assets/images/default-avatar.png'" 
+                         class="user-avatar" 
+                         alt="User Avatar">
+                    <div class="user-details">
+                      <h6 class="user-name">{{ user.firstName }} {{ user.lastName }}</h6>
+                      <p class="user-email">{{ user.email }}</p>
+                      <small class="text-muted">@{{ user.username }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="user-roles">
+                    <span *ngFor="let role of user.roles" 
+                          class="badge me-1" 
+                          [ngClass]="getRoleBadgeClass(role.name)">
+                      {{ role.name }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="user.isActive ? 'badge-success' : 'badge-danger'">
+                    {{ user.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    {{ getLastLoginText(user.lastLogin) }}
+                  </small>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    {{ user.createdAt | date: 'mediumDate' }}
+                  </small>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-outline-primary me-1" 
+                            (click)="openUserModal(user)"
+                            title="Edit User">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm me-1" 
+                            [ngClass]="user.isActive ? 'btn-outline-warning' : 'btn-outline-success'"
+                            (click)="toggleUserStatus(user)"
+                            [title]="user.isActive ? 'Deactivate User' : 'Activate User'">
+                      <i class="fas" [class.fa-user-slash]="user.isActive" [class.fa-user-check]="!user.isActive"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" 
+                            (click)="deleteUser(user)"
+                            title="Delete User">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Empty State -->
+          <div *ngIf="filteredUsers().length === 0" class="empty-state text-center py-5">
+            <i class="fas fa-users empty-icon"></i>
+            <h5>No users found</h5>
+            <p class="text-muted">Try adjusting your search criteria or create a new user.</p>
+            <button class="btn btn-primary" (click)="openUserModal()">
+              <i class="fas fa-plus me-2"></i>Add User
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Management Tab -->
+  <div *ngIf="activeTab() === 'roles'" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Role Management</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Available Roles</h6>
+            <div class="roles-list">
+              <div *ngFor="let role of availableRoles" class="role-item">
+                <div class="role-info">
+                  <h6 class="role-name">{{ role.name }}</h6>
+                  <p class="role-description">{{ role.description }}</p>
+                </div>
+                <div class="role-actions">
+                  <span class="badge" [ngClass]="getRoleBadgeClass(role.name)">
+                    {{ getUsersWithRoleCount(role.name) }} users
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6>Role Permissions</h6>
+            <div class="permissions-info">
+              <p class="text-muted">Select a role to view and edit its permissions.</p>
+              <!-- Backend Note: Implement role permission management -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Settings Tab -->
+  <div *ngIf="activeTab() === 'system'" class="tab-content">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">System Configuration</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h6>General Settings</h6>
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Application Name</label>
+                <input type="text" class="form-control" value="NexusFlow">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Default Timezone</label>
+                <select class="form-select">
+                  <option>UTC</option>
+                  <option selected>Local Time</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Date Format</label>
+                <select class="form-select">
+                  <option>MM/DD/YYYY</option>
+                  <option selected>DD/MM/YYYY</option>
+                  <option>YYYY-MM-DD</option>
+                </select>
+              </div>
+            </form>
+          </div>
+          <div class="col-md-6">
+            <h6>Security Settings</h6>
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Session Timeout (minutes)</label>
+                <input type="number" class="form-control" value="30">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Max Login Attempts</label>
+                <input type="number" class="form-control" value="5">
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="require2fa" checked>
+                <label class="form-check-label" for="require2fa">Require 2FA for admins</label>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="text-end mt-4">
+          <button class="btn btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div class="modal fade" [class.show]="showUserModal()" [style.display]="showUserModal() ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            {{ selectedUser() ? 'Edit User' : 'Create User' }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeUserModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">First Name *</label>
+                <input type="text" 
+                       class="form-control" 
+                       [value]="userForm().firstName"
+                       (input)="updateFormField('firstName', $event)" 
+                       required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Last Name *</label>
+                <input type="text" 
+                       class="form-control" 
+                       [value]="userForm().lastName"
+                       (input)="updateFormField('lastName', $event)" 
+                       required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Username *</label>
+                <input type="text" 
+                       class="form-control" 
+                       [value]="userForm().username"
+                       (input)="updateFormField('username', $event)" 
+                       required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email *</label>
+                <input type="email" 
+                       class="form-control" 
+                       [value]="userForm().email"
+                       (input)="updateFormField('email', $event)" 
+                       required>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Roles</label>
+                <div class="roles-selection">
+                  <div *ngFor="let role of availableRoles" class="form-check">
+                    <input class="form-check-input" 
+                           type="checkbox" 
+                           [id]="'role-' + role.name"
+                           [checked]="hasFormRole(role.name)"
+                           (change)="handleRoleChange(role, $event)">
+                    <label class="form-check-label" [for]="'role-' + role.name">
+                      {{ role.name }} - {{ role.description }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12" *ngIf="!selectedUser()">
+                <label class="form-label">Password *</label>
+                <input type="password" class="form-control" name="password" required>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeUserModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="saveUser()">
+            {{ selectedUser() ? 'Update' : 'Create' }} User
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="showUserModal()" class="modal-backdrop fade show"></div>
+</div>

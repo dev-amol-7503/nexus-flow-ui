@@ -1,0 +1,360 @@
+<!-- Kanban-style task board with drag and drop -->
+<div class="task-board-container">
+  <!-- Page Header -->
+  <div class="page-header mb-4">
+    <div class="header-content">
+      <div class="header-text">
+        <h1 class="page-title">Task Board</h1>
+        <p class="page-subtitle">Drag and drop tasks to update their status</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" (click)="showTaskForm.set(true)">
+          <i class="fas fa-plus me-2"></i>New Task
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Task Modal -->
+  <div class="modal fade" [class.show]="showTaskForm()" [style.display]="showTaskForm() ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New Task</h5>
+          <button type="button" class="btn-close" (click)="showTaskForm.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <form (ngSubmit)="createTask()">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">Task Title *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="newTask().title"
+                  name="title"
+                  placeholder="Enter task title"
+                  required>
+              </div>
+              
+              <div class="col-12">
+                <label class="form-label">Description *</label>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  [(ngModel)]="newTask().description"
+                  name="description"
+                  placeholder="Enter task description"
+                  required></textarea>
+              </div>
+              
+              <div class="col-md-6">
+                <label class="form-label">Priority</label>
+                <select class="form-select" [(ngModel)]="newTask().priority" name="priority">
+                  <option *ngFor="let option of priorityOptions" [value]="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="col-md-6">
+                <label class="form-label">Due Date</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  [(ngModel)]="newTask().dueDate"
+                  name="dueDate">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showTaskForm.set(false)">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="createTask()">Create Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="showTaskForm()" class="modal-backdrop fade show"></div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Loading tasks...</p>
+  </div>
+
+  <!-- Kanban Board -->
+  <div *ngIf="!isLoading()" class="kanban-board" cdkDropListGroup>
+    <!-- TODO Column -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-badge status-todo"></span>
+          <h5>To Do</h5>
+          <span class="task-count">{{ todoTasks().length }}</span>
+        </div>
+        <i class="fas fa-plus column-action" title="Add task" (click)="showTaskForm.set(true)"></i>
+      </div>
+      
+      <div
+        class="task-list"
+        id="todoList"
+        cdkDropList
+        [cdkDropListData]="todoTasks()"
+        (cdkDropListDropped)="drop($event, 'TODO')">
+        
+        <div
+          class="task-card"
+          *ngFor="let task of todoTasks()"
+          cdkDrag>
+          <div class="task-header">
+            <span class="task-priority" [ngClass]="getPriorityClass(task.priority)"></span>
+            <div class="task-actions dropdown">
+              <button class="btn btn-sm btn-icon" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end">
+                <a class="dropdown-item" (click)="updateTaskStatusFromTask(task, 'IN_PROGRESS')">
+                  <i class="fas fa-play me-2"></i>Start Task
+                </a>
+                <a class="dropdown-item" href="#">
+                  <i class="fas fa-edit me-2"></i>Edit
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-danger" (click)="deleteTaskFromTask(task)">
+                  <i class="fas fa-trash me-2"></i>Delete
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <h6 class="task-title">{{ task.title }}</h6>
+          <p class="task-description">{{ task.description }}</p>
+          
+          <div class="task-footer">
+            <div class="task-meta">
+              <span class="task-project">{{ task.project.name }}</span>
+              <span *ngIf="task.dueDate" class="due-date" [class.overdue]="isOverdue(task.dueDate)">
+                <i class="fas fa-clock me-1"></i>
+                {{ getDaysUntilDue(task.dueDate) }}d
+              </span>
+            </div>
+            <div class="task-assignee" *ngIf="task.assignee">
+              <img [src]="task.assignee.avatar || 'assets/images/default-avatar.png'" 
+                   class="assignee-avatar" 
+                   [alt]="task.assignee.firstName">
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="todoTasks().length === 0" class="empty-column">
+          <i class="fas fa-inbox empty-icon"></i>
+          <p>No tasks</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- IN PROGRESS Column -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-badge status-in-progress"></span>
+          <h5>In Progress</h5>
+          <span class="task-count">{{ inProgressTasks().length }}</span>
+        </div>
+      </div>
+      
+      <div
+        class="task-list"
+        id="inProgressList"
+        cdkDropList
+        [cdkDropListData]="inProgressTasks()"
+        (cdkDropListDropped)="drop($event, 'IN_PROGRESS')">
+        
+        <div
+          class="task-card"
+          *ngFor="let task of inProgressTasks()"
+          cdkDrag>
+          <div class="task-header">
+            <span class="task-priority" [ngClass]="getPriorityClass(task.priority)"></span>
+            <div class="task-actions dropdown">
+              <button class="btn btn-sm btn-icon" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end">
+                <a class="dropdown-item" (click)="updateTaskStatusFromTask(task, 'REVIEW')">
+                  <i class="fas fa-eye me-2"></i>Send for Review
+                </a>
+                <a class="dropdown-item" (click)="updateTaskStatusFromTask(task, 'TODO')">
+                  <i class="fas fa-undo me-2"></i>Move to Todo
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-danger" (click)="deleteTaskFromTask(task)">
+                  <i class="fas fa-trash me-2"></i>Delete
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <h6 class="task-title">{{ task.title }}</h6>
+          <p class="task-description">{{ task.description }}</p>
+          
+          <div class="task-footer">
+            <div class="task-meta">
+              <span class="task-project">{{ task.project.name }}</span>
+              <span *ngIf="task.dueDate" class="due-date" [class.overdue]="isOverdue(task.dueDate)">
+                <i class="fas fa-clock me-1"></i>
+                {{ getDaysUntilDue(task.dueDate) }}d
+              </span>
+            </div>
+            <div class="task-assignee" *ngIf="task.assignee">
+              <img [src]="task.assignee.avatar || 'assets/images/default-avatar.png'" 
+                   class="assignee-avatar" 
+                   [alt]="task.assignee.firstName">
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="inProgressTasks().length === 0" class="empty-column">
+          <i class="fas fa-spinner empty-icon"></i>
+          <p>No tasks in progress</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEW Column -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-badge status-review"></span>
+          <h5>Review</h5>
+          <span class="task-count">{{ reviewTasks().length }}</span>
+        </div>
+      </div>
+      
+      <div
+        class="task-list"
+        id="reviewList"
+        cdkDropList
+        [cdkDropListData]="reviewTasks()"
+        (cdkDropListDropped)="drop($event, 'REVIEW')">
+        
+        <div
+          class="task-card"
+          *ngFor="let task of reviewTasks()"
+          cdkDrag>
+          <div class="task-header">
+            <span class="task-priority" [ngClass]="getPriorityClass(task.priority)"></span>
+            <div class="task-actions dropdown">
+              <button class="btn btn-sm btn-icon" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end">
+                <a class="dropdown-item" (click)="updateTaskStatusFromTask(task, 'DONE')">
+                  <i class="fas fa-check me-2"></i>Mark as Done
+                </a>
+                <a class="dropdown-item" (click)="updateTaskStatusFromTask(task, 'IN_PROGRESS')">
+                  <i class="fas fa-undo me-2"></i>Return to Progress
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-danger" (click)="deleteTaskFromTask(task)">
+                  <i class="fas fa-trash me-2"></i>Delete
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <h6 class="task-title">{{ task.title }}</h6>
+          <p class="task-description">{{ task.description }}</p>
+          
+          <div class="task-footer">
+            <div class="task-meta">
+              <span class="task-project">{{ task.project.name }}</span>
+              <span *ngIf="task.dueDate" class="due-date" [class.overdue]="isOverdue(task.dueDate)">
+                <i class="fas fa-clock me-1"></i>
+                {{ getDaysUntilDue(task.dueDate) }}d
+              </span>
+            </div>
+            <div class="task-assignee" *ngIf="task.assignee">
+              <img [src]="task.assignee.avatar || 'assets/images/default-avatar.png'" 
+                   class="assignee-avatar" 
+                   [alt]="task.assignee.firstName">
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="reviewTasks().length === 0" class="empty-column">
+          <i class="fas fa-eye empty-icon"></i>
+          <p>No tasks in review</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DONE Column -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-badge status-done"></span>
+          <h5>Done</h5>
+          <span class="task-count">{{ doneTasks().length }}</span>
+        </div>
+      </div>
+      
+      <div
+        class="task-list"
+        id="doneList"
+        cdkDropList
+        [cdkDropListData]="doneTasks()"
+        (cdkDropListDropped)="drop($event, 'DONE')">
+        
+        <div
+          class="task-card"
+          *ngFor="let task of doneTasks()"
+          cdkDrag>
+          <div class="task-header">
+            <span class="task-priority" [ngClass]="getPriorityClass(task.priority)"></span>
+            <div class="task-actions dropdown">
+              <button class="btn btn-sm btn-icon" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end">
+                <a class="dropdown-item" (click)="updateTaskStatusFromTask(task, 'REVIEW')">
+                  <i class="fas fa-undo me-2"></i>Reopen
+                </a>
+                <a class="dropdown-item text-danger" (click)="deleteTaskFromTask(task)">
+                  <i class="fas fa-trash me-2"></i>Delete
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <h6 class="task-title">{{ task.title }}</h6>
+          <p class="task-description">{{ task.description }}</p>
+          
+          <div class="task-footer">
+            <div class="task-meta">
+              <span class="task-project">{{ task.project.name }}</span>
+              <span class="completed-date">
+                <i class="fas fa-check me-1"></i>
+                Completed
+              </span>
+            </div>
+            <div class="task-assignee" *ngIf="task.assignee">
+              <img [src]="task.assignee.avatar || 'assets/images/default-avatar.png'" 
+                   class="assignee-avatar" 
+                   [alt]="task.assignee.firstName">
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="doneTasks().length === 0" class="empty-column">
+          <i class="fas fa-check-circle empty-icon"></i>
+          <p>No completed tasks</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

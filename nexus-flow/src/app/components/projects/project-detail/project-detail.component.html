@@ -1,0 +1,292 @@
+<!-- Kanban-style task board with drag and drop -->
+<div class="project-detail-container">
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Loading project details...</p>
+  </div>
+
+  <!-- Project Content -->
+  <div *ngIf="!isLoading() && project()" class="project-content">
+    <!-- Project Header -->
+    <div class="project-header mb-4">
+      <div class="header-content">
+        <div class="header-text">
+          <div class="breadcrumb">
+            <a routerLink="/projects" class="breadcrumb-link">
+              <i class="fas fa-arrow-left me-2"></i>Back to Projects
+            </a>
+          </div>
+          <h1 class="project-title">{{ project()!.name }}</h1>
+          <p class="project-description">{{ project()!.description }}</p>
+          <div class="project-meta">
+            <span class="badge" [ngClass]="getStatusClass(project()!.status)">
+              {{ project()!.status }}
+            </span>
+            <span class="badge" [ngClass]="getPriorityClass(project()!.priority)">
+              {{ project()!.priority }}
+            </span>
+            <span class="text-muted">
+              <i class="fas fa-calendar me-1"></i>
+              {{ project()!.startDate | date }} - {{ project()!.endDate ? (project()!.endDate | date) : 'No deadline' }}
+            </span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary" (click)="showTaskForm.set(true)">
+            <i class="fas fa-plus me-2"></i>Add Task
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-card mb-4">
+      <div class="progress-info">
+        <span class="progress-label">Project Progress</span>
+        <span class="progress-value">{{ getProgress() }}%</span>
+      </div>
+      <div class="progress">
+        <div class="progress-bar" [style.width.%]="getProgress()"></div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="project-tabs mb-4">
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab() === 'overview'" 
+             (click)="setActiveTab('overview')">
+            <i class="fas fa-chart-pie me-2"></i>Overview
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab() === 'tasks'" 
+             (click)="setActiveTab('tasks')">
+            <i class="fas fa-tasks me-2"></i>Tasks ({{ tasks().length }})
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab() === 'team'" 
+             (click)="setActiveTab('team')">
+            <i class="fas fa-users me-2"></i>Team ({{ project()!.teamMembers.length }})
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab() === 'settings'" 
+             (click)="setActiveTab('settings')">
+            <i class="fas fa-cog me-2"></i>Settings
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Overview Tab -->
+      <div *ngIf="activeTab() === 'overview'" class="tab-pane">
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Project Details</h5>
+              </div>
+              <div class="card-body">
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <label>Project Code:</label>
+                    <span>{{ project()!.code }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Start Date:</label>
+                    <span>{{ project()!.startDate | date }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>End Date:</label>
+                    <span>{{ project()!.endDate ? (project()!.endDate | date) : 'Not set' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Budget:</label>
+                    <span>{{ project()!.budget ? ('$' + project()!.budget) : 'Not set' }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Project Owner:</label>
+                    <span>{{ project()!.owner.firstName }} {{ project()!.owner.lastName }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Quick Stats</h5>
+              </div>
+              <div class="card-body">
+                <div class="stats-list">
+                  <div class="stat-item">
+                    <div class="stat-value">{{ getCompletedTasksCount() }}</div>
+                    <div class="stat-label">Completed Tasks</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ getInProgressTasksCount() }}</div>
+                    <div class="stat-label">In Progress</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ getTotalTasksCount() }}</div>
+                    <div class="stat-label">Total Tasks</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks Tab -->
+      <div *ngIf="activeTab() === 'tasks'" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Project Tasks</h5>
+          </div>
+          <div class="card-body">
+            <!-- Empty State -->
+            <div *ngIf="tasks().length === 0" class="empty-state">
+              <i class="fas fa-tasks empty-icon"></i>
+              <h5>No tasks yet</h5>
+              <p class="text-muted">Get started by creating the first task for this project.</p>
+              <button class="btn btn-primary" (click)="showTaskForm.set(true)">
+                <i class="fas fa-plus me-2"></i>Create Task
+              </button>
+            </div>
+
+            <!-- Tasks List -->
+            <div *ngIf="tasks().length > 0" class="tasks-list">
+              <div *ngFor="let task of tasks()" class="task-item">
+                <div class="task-checkbox">
+                  <input type="checkbox" [checked]="task.status === 'DONE'">
+                </div>
+                <div class="task-content">
+                  <h6 class="task-title">{{ task.title }}</h6>
+                  <p class="task-description">{{ task.description }}</p>
+                  <div class="task-meta">
+                    <span class="badge" [ngClass]="getPriorityClass(task.priority)">
+                      {{ task.priority }}
+                    </span>
+                    <span class="badge" [ngClass]="getStatusClass(task.status)">
+                      {{ task.status }}
+                    </span>
+                    <span *ngIf="task.assignee" class="assignee">
+                      <i class="fas fa-user me-1"></i>
+                      {{ task.assignee.firstName }} {{ task.assignee.lastName }}
+                    </span>
+                    <span *ngIf="task.dueDate" class="due-date">
+                      <i class="fas fa-clock me-1"></i>
+                      {{ task.dueDate | date }}
+                    </span>
+                  </div>
+                </div>
+                <div class="task-actions">
+                  <button class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Tab -->
+      <div *ngIf="activeTab() === 'team'" class="tab-pane">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Team Members</h5>
+          </div>
+          <div class="card-body">
+            <div class="team-grid">
+              <div *ngFor="let member of project()!.teamMembers" class="team-member">
+                <img [src]="member.avatar || 'assets/images/default-avatar.png'" 
+                     class="member-avatar" 
+                     [alt]="member.firstName">
+                <div class="member-info">
+                  <h6 class="member-name">{{ member.firstName }} {{ member.lastName }}</h6>
+                  <p class="member-email">{{ member.email }}</p>
+                  <div class="member-roles">
+                    <span *ngFor="let role of member.roles" class="badge badge-secondary">
+                      {{ role.name }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Task Modal -->
+  <div class="modal fade" [class.show]="showTaskForm()" [style.display]="showTaskForm() ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New Task</h5>
+          <button type="button" class="btn-close" (click)="showTaskForm.set(false)"></button>
+        </div>
+        <div class="modal-body">
+          <form (ngSubmit)="createTask()">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">Task Title *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="newTask().title"
+                  name="title"
+                  placeholder="Enter task title"
+                  required>
+              </div>
+              
+              <div class="col-12">
+                <label class="form-label">Description *</label>
+                <textarea
+                  class="form-control"
+                  rows="3"
+                  [(ngModel)]="newTask().description"
+                  name="description"
+                  placeholder="Enter task description"
+                  required></textarea>
+              </div>
+              
+              <div class="col-md-6">
+                <label class="form-label">Priority</label>
+                <select class="form-select" [(ngModel)]="newTask().priority" name="priority">
+                  <option *ngFor="let option of priorityOptions" [value]="option.value">
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="col-md-6">
+                <label class="form-label">Due Date</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  [(ngModel)]="newTask().dueDate"
+                  name="dueDate">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showTaskForm.set(false)">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="createTask()">Create Task</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="showTaskForm()" class="modal-backdrop fade show"></div>
+</div>
