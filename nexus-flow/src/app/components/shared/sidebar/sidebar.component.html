@@ -1,1 +1,12 @@
-<p>sidebar works!</p>
+<!-- Admin only menu items -->
+@if (hasRole(ROLES.ADMIN)) {
+  <li class="nav-section" *ngIf="sidebarOpen()">
+    <span class="section-label">Administration</span>
+  </li>
+  <li class="nav-item">
+    <a routerLink="/admin" routerLinkActive="active" class="nav-link">
+      <i class="fas fa-cogs"></i>
+      <span *ngIf="sidebarOpen()">Admin Panel</span>
+    </a>
+  </li>
+}

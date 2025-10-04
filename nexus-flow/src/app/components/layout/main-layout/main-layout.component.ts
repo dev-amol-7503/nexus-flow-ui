@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { RoleName } from '../../../models/user.model';
+import { SetupService } from '../../../services/setup.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -18,9 +19,24 @@ export class MainLayoutComponent {
   public sidebarOpen = signal<boolean>(true);
   public currentUser = signal<any>(null);
 
-  constructor() {
+  constructor(private setupService: SetupService) {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser.set(user);
+    });
+  }
+
+  ngOnInit(): void {
+   // this.authService.currentUser$.subscribe(user => {
+    //  this.currentUser.set(user);
+   // });
+
+    // Check if setup is needed (extra safety)
+    this.setupService.checkSetupStatus().subscribe({
+      next: (status) => {
+        if (status.canSetup) {
+          this.router.navigate(['/setup']);
+        }
+      }
     });
   }
 
@@ -33,7 +49,23 @@ export class MainLayoutComponent {
     this.router.navigate(['/login']);
   }
 
+  // ✅ Update method to use proper role names
   hasRole(role: RoleName): boolean {
     return this.authService.hasRole(role);
+  }
+
+  // ✅ Helper method for template to check admin role
+  isAdmin(): boolean {
+    return this.authService.hasRole('ROLE_ADMIN');
+  }
+
+  // ✅ Helper method for template to check project manager role
+  isProjectManager(): boolean {
+    return this.authService.hasRole('ROLE_PROJECT_MANAGER');
+  }
+
+  // ✅ Helper method for template to check team member role
+  isTeamMember(): boolean {
+    return this.authService.hasRole('ROLE_TEAM_MEMBER');
   }
 }

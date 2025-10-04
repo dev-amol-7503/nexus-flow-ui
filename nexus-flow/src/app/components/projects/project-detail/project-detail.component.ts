@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,6 +14,10 @@ import { Project, Task } from '../../../models';
   styleUrls: ['./project-detail.component.scss']
 })
 export class ProjectDetailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private projectService = inject(ProjectService);
+  private taskService = inject(TaskService);
+
   public project = signal<Project | null>(null);
   public tasks = signal<Task[]>([]);
   public isLoading = signal<boolean>(true);
@@ -34,12 +38,6 @@ export class ProjectDetailComponent implements OnInit {
     { value: 'URGENT', label: 'Urgent', class: 'priority-urgent' }
   ];
 
-  constructor(
-    private route: ActivatedRoute,
-    private projectService: ProjectService,
-    private taskService: TaskService
-  ) {}
-
   ngOnInit(): void {
     this.loadProject();
   }
@@ -49,98 +47,30 @@ export class ProjectDetailComponent implements OnInit {
     if (projectId) {
       this.isLoading.set(true);
       
-      // Mock data for demonstration
-      setTimeout(() => {
-        const mockProject: Project = {
-          id: +projectId,
-          name: 'Website Redesign',
-          description: 'Complete redesign of company website with modern UI/UX',
-          code: 'WRD-001',
-          status: 'IN_PROGRESS',
-          priority: 'HIGH',
-          startDate: new Date('2024-01-15'),
-          endDate: new Date('2024-03-15'),
-          budget: 15000,
-          owner: {
-            id: 1,
-            firstName: 'John',
-            lastName: 'Doe',
-            username: 'john.doe',
-            email: 'john.doe@company.com',
-            roles: [{ id: 1, name: 'ADMIN', description: 'Administrator' }],
-            isActive: true,
-            createdAt: new Date('2024-01-01')
-          },
-          teamMembers: [
-            {
-              id: 2,
-              firstName: 'Jane',
-              lastName: 'Smith',
-              username: 'jane.smith',
-              email: 'jane.smith@company.com',
-              roles: [{ id: 2, name: 'PROJECT_MANAGER', description: 'Project Manager' }],
-              isActive: true,
-              createdAt: new Date('2024-01-02')
-            }
-          ],
-          tasks: [],
-          createdAt: new Date('2024-01-15'),
-          updatedAt: new Date()
-        };
-        
-        this.project.set(mockProject);
-        this.loadProjectTasks(+projectId);
-      }, 1000);
+      this.projectService.getProjectById(+projectId).subscribe({
+        next: (project) => {
+          this.project.set(project);
+          this.loadProjectTasks(+projectId);
+        },
+        error: (error) => {
+          console.error('Error loading project:', error);
+          this.isLoading.set(false);
+        }
+      });
     }
   }
 
   loadProjectTasks(projectId: number): void {
-    // Mock tasks data
-    const mockTasks: Task[] = [
-      {
-        id: 1,
-        title: 'Create login page design',
-        description: 'Design modern login page with responsive layout',
-        status: 'IN_PROGRESS',
-        priority: 'HIGH',
-        project: { id: projectId, name: 'Website Redesign' } as any,
-        assignee: { 
-          id: 2, 
-          firstName: 'Jane', 
-          lastName: 'Smith' 
-        } as any,
-        reporter: { 
-          id: 1, 
-          firstName: 'John', 
-          lastName: 'Doe' 
-        } as any,
-        tags: ['design', 'ui'],
-        comments: [],
-        createdAt: new Date('2024-01-20'),
-        updatedAt: new Date()
+    this.taskService.getTasksByProject(projectId).subscribe({
+      next: (tasks) => {
+        this.tasks.set(tasks);
+        this.isLoading.set(false);
       },
-      {
-        id: 2,
-        title: 'Implement user authentication',
-        description: 'Set up JWT-based authentication system',
-        status: 'TODO',
-        priority: 'MEDIUM',
-        project: { id: projectId, name: 'Website Redesign' } as any,
-        assignee: undefined,
-        reporter: { 
-          id: 1, 
-          firstName: 'John', 
-          lastName: 'Doe' 
-        } as any,
-        tags: ['backend', 'security'],
-        comments: [],
-        createdAt: new Date('2024-01-21'),
-        updatedAt: new Date()
+      error: (error) => {
+        console.error('Error loading tasks:', error);
+        this.isLoading.set(false);
       }
-    ];
-    
-    this.tasks.set(mockTasks);
-    this.isLoading.set(false);
+    });
   }
 
   setActiveTab(tab: string): void {
@@ -149,29 +79,25 @@ export class ProjectDetailComponent implements OnInit {
 
   createTask(): void {
     if (this.newTask().title && this.project()) {
-      // Mock task creation
-      const newTask: Task = {
-        id: this.tasks().length + 1,
-        title: this.newTask().title!,
-        description: this.newTask().description!,
-        status: 'TODO',
-        priority: this.newTask().priority!,
-        project: this.project()!,
-        assignee: undefined,
-        reporter: this.project()!.owner,
-        tags: [],
-        comments: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
+      const taskData = {
+        ...this.newTask(),
+        projectId: this.project()!.id
       };
 
-      this.tasks.update(tasks => [...tasks, newTask]);
-      this.showTaskForm.set(false);
-      this.newTask.set({
-        title: '',
-        description: '',
-        priority: 'MEDIUM',
-        status: 'TODO'
+      this.taskService.createTask(taskData).subscribe({
+        next: (task) => {
+          this.tasks.update(tasks => [...tasks, task]);
+          this.showTaskForm.set(false);
+          this.newTask.set({
+            title: '',
+            description: '',
+            priority: 'MEDIUM',
+            status: 'TODO'
+          });
+        },
+        error: (error) => {
+          console.error('Error creating task:', error);
+        }
       });
     }
   }

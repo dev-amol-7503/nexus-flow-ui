@@ -3,15 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
-import { DragDropModule } from '@angular/cdk/drag-drop';
-
-
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, DragDropModule],
-  templateUrl: './login.component.html', // Fixed: Changed from register.component.html
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
 export class LoginComponent {
@@ -39,15 +36,13 @@ export class LoginComponent {
       };
 
       this.authService.login(credentials).subscribe({
-        next: () => {
+        next: (response) => {
+          this.isLoading.set(false);
           this.router.navigate(['/dashboard']);
         },
         error: (error) => {
-          this.errorMessage.set(error.error?.message || 'Login failed. Please try again.');
           this.isLoading.set(false);
-        },
-        complete: () => {
-          this.isLoading.set(false);
+          this.errorMessage.set(error.message);
         }
       });
     }

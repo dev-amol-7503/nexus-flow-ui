@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -14,9 +14,10 @@ import { Task, TaskStatus } from '../../../models';
   styleUrls: ['./task-board.component.scss']
 })
 export class TaskBoardComponent implements OnInit {
+  private taskService = inject(TaskService);
+
   public tasks = signal<Task[]>([]);
   public isLoading = signal<boolean>(true);
-  public selectedProject = signal<number | null>(null);
 
   public todoTasks = signal<Task[]>([]);
   public inProgressTasks = signal<Task[]>([]);
@@ -38,8 +39,6 @@ export class TaskBoardComponent implements OnInit {
     { value: 'URGENT', label: 'Urgent', class: 'priority-urgent' }
   ];
 
-  constructor(private taskService: TaskService) {}
-
   ngOnInit(): void {
     this.loadTasks();
   }
@@ -47,99 +46,17 @@ export class TaskBoardComponent implements OnInit {
   loadTasks(): void {
     this.isLoading.set(true);
     
-    // Mock data for demonstration
-    setTimeout(() => {
-      const mockTasks: Task[] = [
-        {
-          id: 1,
-          title: 'Create login page design',
-          description: 'Design modern login page with responsive layout',
-          status: 'IN_PROGRESS',
-          priority: 'HIGH',
-          project: { id: 1, name: 'Website Redesign' } as any,
-          assignee: { 
-            id: 1, 
-            firstName: 'You', 
-            lastName: 'User' 
-          } as any,
-          reporter: { 
-            id: 2, 
-            firstName: 'PM', 
-            lastName: 'Manager' 
-          } as any,
-          tags: ['design', 'ui'],
-          comments: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 2,
-          title: 'Implement user authentication',
-          description: 'Set up JWT-based authentication system',
-          status: 'TODO',
-          priority: 'MEDIUM',
-          project: { id: 1, name: 'Website Redesign' } as any,
-          assignee: undefined,
-          reporter: { 
-            id: 2, 
-            firstName: 'PM', 
-            lastName: 'Manager' 
-          } as any,
-          tags: ['backend', 'security'],
-          comments: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 3,
-          title: 'Database schema design',
-          description: 'Design and implement database schema',
-          status: 'REVIEW',
-          priority: 'HIGH',
-          project: { id: 1, name: 'Website Redesign' } as any,
-          assignee: { 
-            id: 3, 
-            firstName: 'Database', 
-            lastName: 'Admin' 
-          } as any,
-          reporter: { 
-            id: 2, 
-            firstName: 'PM', 
-            lastName: 'Manager' 
-          } as any,
-          tags: ['database', 'backend'],
-          comments: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 4,
-          title: 'API documentation',
-          description: 'Create comprehensive API documentation',
-          status: 'DONE',
-          priority: 'LOW',
-          project: { id: 1, name: 'Website Redesign' } as any,
-          assignee: { 
-            id: 1, 
-            firstName: 'You', 
-            lastName: 'User' 
-          } as any,
-          reporter: { 
-            id: 2, 
-            firstName: 'PM', 
-            lastName: 'Manager' 
-          } as any,
-          tags: ['documentation', 'api'],
-          comments: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      
-      this.tasks.set(mockTasks);
-      this.organizeTasksByStatus(mockTasks);
-      this.isLoading.set(false);
-    }, 1000);
+    this.taskService.getMyTasks().subscribe({
+      next: (tasks) => {
+        this.tasks.set(tasks);
+        this.organizeTasksByStatus(tasks);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading tasks:', error);
+        this.isLoading.set(false);
+      }
+    });
   }
 
   organizeTasksByStatus(tasks: Task[]): void {
@@ -149,28 +66,21 @@ export class TaskBoardComponent implements OnInit {
     this.doneTasks.set(tasks.filter(task => task.status === 'DONE'));
   }
 
-  // Drag and drop functionality
   drop(event: CdkDragDrop<Task[]>, newStatus: TaskStatus): void {
     if (event.previousContainer === event.container) {
-      // Move within same column
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
     } else {
-      // Move to different column - update task status
       const task = event.previousContainer.data[event.previousIndex];
       
-      // Remove from previous array
       const previousData = [...event.previousContainer.data];
       previousData.splice(event.previousIndex, 1);
       
-      // Add to new array
       const newData = [...event.container.data];
       newData.splice(event.currentIndex, 0, { ...task, status: newStatus });
       
-      // Update the signals
       this.updateTaskArrays(event.previousContainer.id, previousData);
       this.updateTaskArrays(event.container.id, newData);
       
-      // Update task status in backend
       this.updateTaskStatus(task.id, newStatus);
     }
   }
@@ -193,49 +103,38 @@ export class TaskBoardComponent implements OnInit {
   }
 
   updateTaskStatus(taskId: number, status: TaskStatus): void {
-    // Update the task in the main tasks array
-    this.tasks.update(tasks => 
-      tasks.map(task => 
-        task.id === taskId ? { ...task, status } : task
-      )
-    );
-    
-    // Reorganize tasks by status
-    this.organizeTasksByStatus(this.tasks());
-    
-    // Backend Note: Update task status via API
-    console.log('Updating task status:', taskId, status);
+    this.taskService.updateTaskStatus(taskId, status).subscribe({
+      next: (updatedTask) => {
+        this.tasks.update(tasks => 
+          tasks.map(task => 
+            task.id === taskId ? updatedTask : task
+          )
+        );
+      },
+      error: (error) => {
+        console.error('Error updating task status:', error);
+        this.loadTasks();
+      }
+    });
   }
 
-  // New method for handling task object updates (for dropdown actions)
   updateTaskStatusFromTask(task: Task, status: TaskStatus): void {
     this.updateTaskStatus(task.id, status);
   }
 
   createTask(): void {
     if (this.newTask().title && this.newTask().description) {
-      const newTask: Task = {
-        id: Date.now(), // Temporary ID
-        title: this.newTask().title!,
-        description: this.newTask().description!,
-        status: 'TODO',
-        priority: this.newTask().priority!,
-        project: { id: 1, name: 'Default Project' } as any,
-        assignee: undefined,
-        reporter: { id: 1, firstName: 'You', lastName: 'User' } as any,
-        tags: [],
-        comments: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      this.tasks.update(tasks => [...tasks, newTask]);
-      this.organizeTasksByStatus(this.tasks());
-      this.resetNewTaskForm();
-      this.showTaskForm.set(false);
-      
-      // Backend Note: Create task via API
-      console.log('Creating new task:', newTask);
+      this.taskService.createTask(this.newTask()).subscribe({
+        next: (newTask) => {
+          this.tasks.update(tasks => [...tasks, newTask]);
+          this.organizeTasksByStatus(this.tasks());
+          this.resetNewTaskForm();
+          this.showTaskForm.set(false);
+        },
+        error: (error) => {
+          console.error('Error creating task:', error);
+        }
+      });
     }
   }
 
@@ -271,15 +170,18 @@ export class TaskBoardComponent implements OnInit {
 
   deleteTask(taskId: number): void {
     if (confirm('Are you sure you want to delete this task?')) {
-      this.tasks.update(tasks => tasks.filter(task => task.id !== taskId));
-      this.organizeTasksByStatus(this.tasks());
-      
-      // Backend Note: Delete task via API
-      console.log('Deleting task:', taskId);
+      this.taskService.deleteTask(taskId).subscribe({
+        next: () => {
+          this.tasks.update(tasks => tasks.filter(task => task.id !== taskId));
+          this.organizeTasksByStatus(this.tasks());
+        },
+        error: (error) => {
+          console.error('Error deleting task:', error);
+        }
+      });
     }
   }
 
-  // New method for handling task object deletion (for dropdown actions)
   deleteTaskFromTask(task: Task): void {
     this.deleteTask(task.id);
   }

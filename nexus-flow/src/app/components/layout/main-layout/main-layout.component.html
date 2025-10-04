@@ -34,7 +34,7 @@
         </li>
         
         <!-- Admin only menu items -->
-        @if (hasRole('ADMIN')) {
+        @if (isAdmin()) {
           <li class="nav-section" *ngIf="sidebarOpen()">
             <span class="section-label">Administration</span>
           </li>
@@ -42,6 +42,12 @@
             <a routerLink="/admin" routerLinkActive="active" class="nav-link">
               <i class="fas fa-cogs"></i>
               <span *ngIf="sidebarOpen()">Admin Panel</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a routerLink="/admin/users" routerLinkActive="active" class="nav-link">
+              <i class="fas fa-users"></i>
+              <span *ngIf="sidebarOpen()">User Management</span>
             </a>
           </li>
         }
@@ -69,6 +75,19 @@
         </div>
         
         <div class="navbar-right">
+          <!-- Role Badge -->
+          <div class="nav-item">
+            <span class="badge bg-primary me-3">
+              @if (isAdmin()) {
+                Administrator
+              } @else if (isProjectManager()) {
+                Project Manager
+              } @else {
+                Team Member
+              }
+            </span>
+          </div>
+
           <!-- Notifications -->
           <div class="nav-item dropdown">
             <button class="btn btn-light btn-icon dropdown-toggle" data-bs-toggle="dropdown">

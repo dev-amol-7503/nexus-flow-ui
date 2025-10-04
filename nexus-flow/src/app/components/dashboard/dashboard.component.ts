@@ -1,9 +1,16 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { TaskService } from '../../services/task.service';
-import { Project, Task } from '../../models';
+import { AuthService } from '../../services/auth.service';
+
+interface DashboardStats {
+  totalProjects: number;
+  completedTasks: number;
+  pendingTasks: number;
+  teamMembers: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -13,15 +20,19 @@ import { Project, Task } from '../../models';
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-  public stats = signal<any>(null);
-  public recentProjects = signal<Project[]>([]);
-  public myTasks = signal<Task[]>([]);
-  public isLoading = signal<boolean>(true);
+  private projectService = inject(ProjectService);
+  private taskService = inject(TaskService);
+  private authService = inject(AuthService);
 
-  constructor(
-    private projectService: ProjectService,
-    private taskService: TaskService
-  ) {}
+  public stats = signal<DashboardStats>({
+    totalProjects: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+    teamMembers: 0
+  });
+  public recentProjects = signal<any[]>([]);
+  public myTasks = signal<any[]>([]);
+  public isLoading = signal<boolean>(true);
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -30,53 +41,34 @@ export class DashboardComponent implements OnInit {
   loadDashboardData(): void {
     this.isLoading.set(true);
 
-    // Load mock data for demonstration
-    setTimeout(() => {
-      this.stats.set({
-        totalProjects: 8,
-        completedTasks: 45,
-        pendingTasks: 12,
-        teamMembers: 6
-      });
+    this.projectService.getProjectStatistics().subscribe({
+      next: (stats) => {
+        this.stats.set(stats);
+      },
+      error: (error) => {
+        console.error('Error loading stats:', error);
+      }
+    });
 
-      this.recentProjects.set([
-        {
-          id: 1,
-          name: 'Website Redesign',
-          description: 'Complete redesign of company website',
-          code: 'WRD-001',
-          status: 'IN_PROGRESS',
-          priority: 'HIGH',
-          startDate: new Date('2024-01-15'),
-          endDate: new Date('2024-03-15'),
-          budget: 15000,
-          owner: { id: 1, firstName: 'John', lastName: 'Doe' } as any,
-          teamMembers: [],
-          tasks: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ] as Project[]);
+    this.projectService.getAllProjects(0, 5).subscribe({
+      next: (response) => {
+        this.recentProjects.set(response.content || []);
+      },
+      error: (error) => {
+        console.error('Error loading projects:', error);
+      }
+    });
 
-      this.myTasks.set([
-        {
-          id: 1,
-          title: 'Create login page design',
-          description: 'Design modern login page with responsive layout',
-          status: 'IN_PROGRESS',
-          priority: 'HIGH',
-          project: { id: 1, name: 'Website Redesign' } as any,
-          assignee: { id: 1, firstName: 'You' } as any,
-          reporter: { id: 2, firstName: 'PM' } as any,
-          tags: [],
-          comments: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ] as Task[]);
-
-      this.isLoading.set(false);
-    }, 1000);
+    this.taskService.getMyTasks().subscribe({
+      next: (tasks) => {
+        this.myTasks.set(tasks);
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading tasks:', error);
+        this.isLoading.set(false);
+      }
+    });
   }
 
   getStatusClass(status: string): string {
@@ -101,9 +93,16 @@ export class DashboardComponent implements OnInit {
     return priorityClasses[priority] || 'priority-default';
   }
 
-  toggleTask(task: Task): void {
-    // Implement task toggle functionality
-    console.log('Toggle task:', task);
+  toggleTask(task: any): void {
+    const newStatus = task.status === 'DONE' ? 'TODO' : 'DONE';
+    this.taskService.updateTaskStatus(task.id, newStatus).subscribe({
+      next: (updatedTask) => {
+        this.loadDashboardData();
+      },
+      error: (error) => {
+        console.error('Error updating task:', error);
+      }
+    });
   }
 
   isOverdue(dueDate: Date): boolean {

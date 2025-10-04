@@ -1,8 +1,15 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { User, Role, RoleName } from '../../../models/user.model';
 import { AuthService } from '../../../services/auth.service';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
 
 @Component({
   selector: 'app-admin-panel',
@@ -12,8 +19,8 @@ import { AuthService } from '../../../services/auth.service';
   styleUrls: ['./admin-panel.component.scss']
 })
 export class AdminPanelComponent implements OnInit {
-  // Inject AuthService
   private authService = inject(AuthService);
+  private http = inject(HttpClient);
 
   public activeTab = signal<string>('users');
   public users = signal<User[]>([]);
@@ -31,11 +38,10 @@ export class AdminPanelComponent implements OnInit {
     roles: []
   });
 
-  // Available roles with proper typing
   public availableRoles: Role[] = [
-    { id: 1, name: 'ADMIN', description: 'System Administrator' },
-    { id: 2, name: 'PROJECT_MANAGER', description: 'Project Manager' },
-    { id: 3, name: 'TEAM_MEMBER', description: 'Team Member' }
+    { id: 1, name: 'ROLE_ADMIN', description: 'System Administrator' },
+    { id: 2, name: 'ROLE_PROJECT_MANAGER', description: 'Project Manager' },
+    { id: 3, name: 'ROLE_TEAM_MEMBER', description: 'Team Member' }
   ];
 
   public systemStats = signal<any>({
@@ -43,40 +49,60 @@ export class AdminPanelComponent implements OnInit {
     activeUsers: 0,
     totalProjects: 0,
     totalTasks: 0,
-    storageUsed: '2.5 GB',
-    systemUptime: '99.9%'
+    storageUsed: '0 GB',
+    systemUptime: '100%'
   });
+
+  private readonly API_URL = 'http://localhost:8080/api/admin';
 
   ngOnInit(): void {
     this.loadUsers();
     this.loadSystemStats();
   }
 
-  loadUsers(): void {
-    this.isLoading.set(true);
-    
-    // Use AuthService to get mock users
-    const mockUsers = this.authService.getMockUsers();
-    
-    setTimeout(() => {
-      this.users.set(mockUsers);
-      this.filteredUsers.set(mockUsers);
-      this.isLoading.set(false);
-    }, 1000);
-  }
-
-  loadSystemStats(): void {
-    this.systemStats.set({
-      totalUsers: 45,
-      activeUsers: 38,
-      totalProjects: 12,
-      totalTasks: 234,
-      storageUsed: '2.5 GB',
-      systemUptime: '99.9%'
+  private getAuthHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     });
   }
 
-  // Handle search input
+  loadUsers(): void {
+    this.isLoading.set(true);
+    
+    this.http.get<ApiResponse<User[]>>(`${this.API_URL}/users`, {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.users.set(response.data);
+          this.filteredUsers.set(response.data);
+        }
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.isLoading.set(false);
+      }
+    });
+  }
+
+  loadSystemStats(): void {
+    this.http.get<ApiResponse<any>>(`${this.API_URL}/stats`, {
+      headers: this.getAuthHeaders()
+    }).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.systemStats.set(response.data);
+        }
+      },
+      error: (error) => {
+        console.error('Error loading stats:', error);
+      }
+    });
+  }
+
   handleSearchInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchTerm.set(input.value);
@@ -98,7 +124,6 @@ export class AdminPanelComponent implements OnInit {
     }
   }
 
-  // Get last login text
   getLastLoginText(lastLogin?: Date): string {
     if (!lastLogin) return 'Never';
     
@@ -116,18 +141,16 @@ export class AdminPanelComponent implements OnInit {
       const weeks = Math.floor(diffDays / 7);
       return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
     } else {
-      return lastLogin.toLocaleDateString();
+      return new Date(lastLogin).toLocaleDateString();
     }
   }
 
-  // Get users count with specific role
   getUsersWithRoleCount(roleName: RoleName): number {
     return this.users().filter(user => 
       user.roles.some(role => role.name === roleName)
     ).length;
   }
 
-  // Update form field
   updateFormField(field: string, event: Event): void {
     const input = event.target as HTMLInputElement;
     const currentForm = this.userForm();
@@ -137,25 +160,21 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
-  // Check if form has role
   hasFormRole(roleName: RoleName): boolean {
     const formRoles = this.userForm().roles || [];
     return formRoles.some(role => role.name === roleName);
   }
 
-  // Handle role change in form
   handleRoleChange(role: Role, event: Event): void {
     const checkbox = event.target as HTMLInputElement;
     const currentForm = this.userForm();
     const currentRoles = [...(currentForm.roles || [])];
     
     if (checkbox.checked) {
-      // Add role
       if (!currentRoles.some(r => r.name === role.name)) {
         currentRoles.push(role);
       }
     } else {
-      // Remove role
       const index = currentRoles.findIndex(r => r.name === role.name);
       if (index > -1) {
         currentRoles.splice(index, 1);
@@ -195,42 +214,83 @@ export class AdminPanelComponent implements OnInit {
   }
 
   saveUser(): void {
-    console.log('Saving user:', this.userForm());
-    this.closeUserModal();
-    this.loadUsers();
+    const userData = this.userForm();
+    
+    if (this.selectedUser()) {
+      this.http.put<ApiResponse<User>>(
+        `${this.API_URL}/users/${this.selectedUser()?.id}`,
+        userData,
+        { headers: this.getAuthHeaders() }
+      ).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.closeUserModal();
+            this.loadUsers();
+          }
+        },
+        error: (error) => {
+          console.error('Error updating user:', error);
+        }
+      });
+    } else {
+      this.http.post<ApiResponse<User>>(
+        `${this.API_URL}/users`,
+        userData,
+        { headers: this.getAuthHeaders() }
+      ).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.closeUserModal();
+            this.loadUsers();
+          }
+        },
+        error: (error) => {
+          console.error('Error creating user:', error);
+        }
+      });
+    }
   }
 
   toggleUserStatus(user: User): void {
-    user.isActive = !user.isActive;
-    console.log('Updated user status:', user);
+    this.http.patch<ApiResponse<User>>(
+      `${this.API_URL}/users/${user.id}/toggle-status`,
+      {},
+      { headers: this.getAuthHeaders() }
+    ).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.loadUsers();
+        }
+      },
+      error: (error) => {
+        console.error('Error updating user status:', error);
+      }
+    });
   }
 
   deleteUser(user: User): void {
     if (confirm(`Are you sure you want to delete user ${user.username}?`)) {
-      console.log('Deleting user:', user);
-      this.loadUsers();
+      this.http.delete<ApiResponse<void>>(
+        `${this.API_URL}/users/${user.id}`,
+        { headers: this.getAuthHeaders() }
+      ).subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.loadUsers();
+          }
+        },
+        error: (error) => {
+          console.error('Error deleting user:', error);
+        }
+      });
     }
-  }
-
-  toggleUserRole(user: User, role: Role): void {
-    const userRoles = user.roles.map(r => r.name);
-    if (userRoles.includes(role.name)) {
-      user.roles = user.roles.filter(r => r.name !== role.name);
-    } else {
-      user.roles.push(role);
-    }
-    console.log('Updated user roles:', user);
-  }
-
-  hasRole(user: User, roleName: RoleName): boolean {
-    return user.roles.some(role => role.name === roleName);
   }
 
   getRoleBadgeClass(roleName: RoleName): string {
     const roleClasses: { [key: string]: string } = {
-      'ADMIN': 'badge-admin',
-      'PROJECT_MANAGER': 'badge-pm',
-      'TEAM_MEMBER': 'badge-member'
+      'ROLE_ADMIN': 'badge-danger',
+      'ROLE_PROJECT_MANAGER': 'badge-warning',
+      'ROLE_TEAM_MEMBER': 'badge-info'
     };
     return roleClasses[roleName] || 'badge-secondary';
   }

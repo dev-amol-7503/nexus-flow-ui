@@ -1,7 +1,35 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, of, tap, delay } from 'rxjs';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { map, tap, catchError } from 'rxjs/operators';
 import { User, Role, RoleName } from '../models/user.model';
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  timestamp: string;
+  statusCode: number;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  roles: Role[];
+}
+
+export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -13,51 +41,6 @@ export class AuthService {
 
   public isAuthenticated = signal<boolean>(false);
   public userRoles = signal<RoleName[]>([]);
-
-  // Helper function to create roles with proper typing
-  private createRole(id: number, name: RoleName, description: string): Role {
-    return { id, name, description };
-  }
-
-  // Mock users for demonstration with proper typing
-  private mockUsers: User[] = [
-    {
-      id: 1,
-      username: 'admin',
-      email: 'admin@nexusflow.com',
-      firstName: 'System',
-      lastName: 'Administrator',
-      avatar: 'assets/images/default-avatar.png',
-      roles: [this.createRole(1, 'ADMIN', 'System Administrator')],
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      lastLogin: new Date()
-    },
-    {
-      id: 2,
-      username: 'manager',
-      email: 'manager@nexusflow.com',
-      firstName: 'Project',
-      lastName: 'Manager',
-      avatar: 'assets/images/default-avatar.png',
-      roles: [this.createRole(2, 'PROJECT_MANAGER', 'Project Manager')],
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastLogin: new Date()
-    },
-    {
-      id: 3,
-      username: 'user',
-      email: 'user@nexusflow.com',
-      firstName: 'Team',
-      lastName: 'Member',
-      avatar: 'assets/images/default-avatar.png',
-      roles: [this.createRole(3, 'TEAM_MEMBER', 'Team Member')],
-      isActive: true,
-      createdAt: new Date('2024-02-01'),
-      lastLogin: new Date()
-    }
-  ];
 
   constructor(private http: HttpClient) {
     this.checkInitialAuthState();
@@ -71,57 +54,101 @@ export class AuthService {
       this.isAuthenticated.set(true);
       const userObj: User = JSON.parse(user);
       this.currentUserSubject.next(userObj);
-      this.userRoles.set(userObj.roles.map(role => role.name));
+      this.userRoles.set(userObj.roles.map(role => role.name as RoleName));
     }
   }
 
-  login(credentials: { username: string; password: string }): Observable<any> {
-    const user = this.mockUsers.find(u => u.username === credentials.username);
-    
-    if (user) {
-      const mockResponse = {
-        accessToken: 'mock-jwt-token-' + user.id,
-        user: user
-      };
+  login(credentials: { username: string; password: string }): Observable<LoginResponse> {
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.API_URL}/login`, credentials)
+      .pipe(
+        map(response => {
+          if (response.success && response.data) {
+            return response.data;
+          }
+          throw new Error(response.message || 'Login failed');
+        }),
+        tap(loginResponse => {
+          const user: User = {
+            id: loginResponse.id,
+            username: loginResponse.username,
+            email: loginResponse.email,
+            firstName: loginResponse.firstName,
+            lastName: loginResponse.lastName,
+            roles: loginResponse.roles,
+            isActive: true,
+            avatar: '',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
 
-      return of(mockResponse).pipe(
-        delay(1000),
-        tap(response => {
-          localStorage.setItem('access_token', response.accessToken);
-          localStorage.setItem('current_user', JSON.stringify(response.user));
+          localStorage.setItem('access_token', loginResponse.accessToken);
+          localStorage.setItem('current_user', JSON.stringify(user));
           this.isAuthenticated.set(true);
-          this.currentUserSubject.next(response.user);
-          this.userRoles.set(response.user.roles.map(role => role.name));
+          this.currentUserSubject.next(user);
+          this.userRoles.set(loginResponse.roles.map(role => role.name as RoleName));
+        }),
+        catchError(error => {
+          let errorMessage = 'Login failed';
+          if (error.error && error.error.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          return throwError(() => new Error(errorMessage));
         })
       );
-    } else {
-      return of(null).pipe(
-        delay(1000),
-        tap(() => {
-          throw new Error('Invalid username or password');
+  }
+
+  register(registerRequest: RegisterRequest): Observable<any> {
+    return this.http.post<ApiResponse<any>>(`${this.API_URL}/register`, registerRequest)
+      .pipe(
+        map(response => {
+          if (response.success) {
+            return response.data;
+          }
+          throw new Error(response.message || 'Registration failed');
+        }),
+        catchError(error => {
+          let errorMessage = 'Registration failed';
+          if (error.error && error.error.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          return throwError(() => new Error(errorMessage));
         })
       );
+  }
+
+  getCurrentUser(): Observable<User> {
+    const token = this.getToken();
+    if (!token) {
+        return throwError(() => new Error('No authentication token found'));
     }
-  }
 
-  register(userData: any): Observable<any> {
-    const newUser: User = {
-      id: this.mockUsers.length + 1,
-      ...userData,
-      avatar: 'assets/images/default-avatar.png',
-      roles: [this.createRole(3, 'TEAM_MEMBER', 'Team Member')],
-      isActive: true,
-      createdAt: new Date(),
-      lastLogin: new Date()
-    };
+    const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.mockUsers.push(newUser);
-
-    return of({
-      message: 'User registered successfully',
-      user: newUser
-    }).pipe(delay(1000));
-  }
+    return this.http.get<ApiResponse<User>>(`${this.API_URL}/auth/me`, { headers })
+        .pipe(
+            map(response => {
+                if (response.success && response.data) {
+                    const processedUser = response.data;
+                    localStorage.setItem('current_user', JSON.stringify(processedUser));
+                    this.currentUserSubject.next(processedUser);
+                    this.userRoles.set(processedUser.roles.map(role => role.name as RoleName));
+                    return processedUser;
+                }
+                throw new Error(response.message || 'Failed to get user data');
+            }),
+            catchError(error => {
+                console.error('Get current user error:', error);
+                if (error.status === 401) {
+                    this.logout();
+                }
+                return throwError(() => new Error('Failed to get user data'));
+            })
+        );
+}
 
   logout(): void {
     localStorage.removeItem('access_token');
@@ -136,7 +163,16 @@ export class AuthService {
   }
 
   checkAuthentication(): boolean {
-    return this.isAuthenticated();
+    const token = this.getToken();
+    const user = localStorage.getItem('current_user');
+    
+    if (token && user) {
+      this.isAuthenticated.set(true);
+      return true;
+    }
+    
+    this.isAuthenticated.set(false);
+    return false;
   }
 
   hasRole(role: RoleName): boolean {
@@ -145,18 +181,5 @@ export class AuthService {
 
   hasAnyRole(roles: RoleName[]): boolean {
     return roles.some(role => this.userRoles().includes(role));
-  }
-
-  getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
-  }
-
-  refreshToken(): Observable<any> {
-    return of({ accessToken: 'mock-refreshed-token' }).pipe(delay(500));
-  }
-
-  // Helper method to get mock users for admin panel
-  getMockUsers(): User[] {
-    return this.mockUsers;
   }
 }

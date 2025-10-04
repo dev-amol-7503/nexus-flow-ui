@@ -1,0 +1,195 @@
+<div class="setup-container">
+  <div class="setup-card">
+    <!-- Header -->
+    <div class="card-header">
+      <div class="logo-section">
+        <i class="fas fa-project-diagram logo-icon"></i>
+        <h1 class="logo-text">NexusFlow</h1>
+      </div>
+      <p class="welcome-text">First Time Setup - Create Admin Account</p>
+    </div>
+
+    <div class="card-body">
+      <!-- Loading State -->
+      <div *ngIf="isLoading()" class="loading-state">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Checking system status...</p>
+      </div>
+
+      <!-- Setup Form -->
+      <div *ngIf="!isLoading() && setupService.setupStatus()?.canSetup" class="setup-form-container">
+        <!-- Success Message -->
+        <div *ngIf="successMessage()" class="alert alert-success alert-dismissible fade show" role="alert">
+          <i class="fas fa-check-circle me-2"></i>
+          {{ successMessage() }}
+          <button type="button" class="btn-close" (click)="successMessage.set('')"></button>
+        </div>
+
+        <!-- Error Message -->
+        <div *ngIf="errorMessage()" class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="fas fa-exclamation-circle me-2"></i>
+          {{ errorMessage() }}
+          <button type="button" class="btn-close" (click)="errorMessage.set('')"></button>
+        </div>
+
+        <!-- Setup Instructions -->
+        <div class="setup-info mb-4">
+          <div class="info-card">
+            <h6><i class="fas fa-info-circle me-2"></i>Setup Information</h6>
+            <p class="mb-2">This is the first time setup for NexusFlow. You need to create the initial administrator account.</p>
+            <p class="mb-0"><strong>Invitation Code:</strong> MYADMIN123</p>
+          </div>
+        </div>
+
+        <!-- Admin Creation Form -->
+        <form [formGroup]="setupForm" (ngSubmit)="onSubmit()">
+          <div class="row g-3">
+            <!-- Invitation Code -->
+            <div class="col-12">
+              <label for="invitationCode" class="form-label">Invitation Code *</label>
+              <input
+                type="text"
+                id="invitationCode"
+                formControlName="invitationCode"
+                class="form-control"
+                [class.is-invalid]="invitationCode?.invalid && invitationCode?.touched"
+                placeholder="Enter invitation code">
+              <div *ngIf="invitationCode?.invalid && invitationCode?.touched" class="invalid-feedback d-block">
+                <div *ngIf="invitationCode?.errors?.['required']">Invitation code is required</div>
+                <div *ngIf="invitationCode?.errors?.['minlength']">Invitation code must be at least 3 characters</div>
+              </div>
+            </div>
+
+            <!-- Personal Information -->
+            <div class="col-md-6">
+              <label for="firstName" class="form-label">First Name *</label>
+              <input
+                type="text"
+                id="firstName"
+                formControlName="firstName"
+                class="form-control"
+                [class.is-invalid]="firstName?.invalid && firstName?.touched"
+                placeholder="Enter your first name">
+              <div *ngIf="firstName?.invalid && firstName?.touched" class="invalid-feedback d-block">
+                <div *ngIf="firstName?.errors?.['required']">First name is required</div>
+                <div *ngIf="firstName?.errors?.['minlength']">First name must be at least 2 characters</div>
+                <div *ngIf="firstName?.errors?.['maxlength']">First name cannot exceed 50 characters</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="lastName" class="form-label">Last Name *</label>
+              <input
+                type="text"
+                id="lastName"
+                formControlName="lastName"
+                class="form-control"
+                [class.is-invalid]="lastName?.invalid && lastName?.touched"
+                placeholder="Enter your last name">
+              <div *ngIf="lastName?.invalid && lastName?.touched" class="invalid-feedback d-block">
+                <div *ngIf="lastName?.errors?.['required']">Last name is required</div>
+                <div *ngIf="lastName?.errors?.['minlength']">Last name must be at least 2 characters</div>
+                <div *ngIf="lastName?.errors?.['maxlength']">Last name cannot exceed 50 characters</div>
+              </div>
+            </div>
+
+            <!-- Account Information -->
+            <div class="col-md-6">
+              <label for="username" class="form-label">Username *</label>
+              <input
+                type="text"
+                id="username"
+                formControlName="username"
+                class="form-control"
+                [class.is-invalid]="username?.invalid && username?.touched"
+                placeholder="Choose a username">
+              <div *ngIf="username?.invalid && username?.touched" class="invalid-feedback d-block">
+                <div *ngIf="username?.errors?.['required']">Username is required</div>
+                <div *ngIf="username?.errors?.['minlength']">Username must be at least 3 characters</div>
+                <div *ngIf="username?.errors?.['maxlength']">Username cannot exceed 20 characters</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="email" class="form-label">Email Address *</label>
+              <input
+                type="email"
+                id="email"
+                formControlName="email"
+                class="form-control"
+                [class.is-invalid]="email?.invalid && email?.touched"
+                placeholder="Enter your email">
+              <div *ngIf="email?.invalid && email?.touched" class="invalid-feedback d-block">
+                <div *ngIf="email?.errors?.['required']">Email is required</div>
+                <div *ngIf="email?.errors?.['email']">Please enter a valid email address</div>
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div class="col-md-6">
+              <label for="password" class="form-label">Password *</label>
+              <input
+                type="password"
+                id="password"
+                formControlName="password"
+                class="form-control"
+                [class.is-invalid]="password?.invalid && password?.touched"
+                placeholder="Create a password">
+              <div *ngIf="password?.invalid && password?.touched" class="invalid-feedback d-block">
+                <div *ngIf="password?.errors?.['required']">Password is required</div>
+                <div *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="confirmPassword" class="form-label">Confirm Password *</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                formControlName="confirmPassword"
+                class="form-control"
+                [class.is-invalid]="confirmPassword?.invalid && confirmPassword?.touched"
+                placeholder="Confirm your password">
+              <div *ngIf="confirmPassword?.invalid && confirmPassword?.touched" class="invalid-feedback d-block">
+                <div *ngIf="confirmPassword?.errors?.['required']">Please confirm your password</div>
+                <div *ngIf="confirmPassword?.errors?.['passwordMismatch']">Passwords do not match</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            class="btn btn-primary w-100 setup-btn mt-4"
+            [disabled]="setupForm.invalid || isSubmitting()">
+            <span *ngIf="!isSubmitting()">Create Admin Account</span>
+            <div *ngIf="isSubmitting()" class="spinner-border spinner-border-sm" role="status">
+              <span class="visually-hidden">Creating account...</span>
+            </div>
+          </button>
+        </form>
+      </div>
+
+      <!-- Already Setup Message -->
+      <div *ngIf="!isLoading() && !setupService.setupStatus()?.canSetup" class="already-setup">
+        <div class="success-state text-center">
+          <i class="fas fa-check-circle success-icon"></i>
+          <h4>System Already Configured</h4>
+          <p class="text-muted">The system has already been set up. You can proceed to login.</p>
+          <button class="btn btn-primary" routerLink="/login">
+            Go to Login
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Background decoration -->
+  <div class="background-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+</div>

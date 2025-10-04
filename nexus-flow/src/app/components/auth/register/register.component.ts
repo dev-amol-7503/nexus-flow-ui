@@ -1,6 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 
@@ -20,8 +20,7 @@ export class RegisterComponent {
   public errorMessage = signal<string>('');
   public successMessage = signal<string>('');
 
-  // Initialize form in constructor
-  registerForm: any;
+  registerForm: FormGroup;
 
   constructor() {
     this.registerForm = this.fb.group({
@@ -35,14 +34,12 @@ export class RegisterComponent {
     }, { validators: this.passwordMatchValidator });
   }
 
-  passwordMatchValidator(form: any) {
+  passwordMatchValidator(form: FormGroup) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
-    
+
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       confirmPassword.setErrors({ passwordMismatch: true });
-    } else {
-      confirmPassword.setErrors(null);
     }
   }
 
@@ -52,7 +49,7 @@ export class RegisterComponent {
       this.errorMessage.set('');
       this.successMessage.set('');
 
-      const formData = {
+      const registerData = {
         firstName: this.registerForm.value.firstName!,
         lastName: this.registerForm.value.lastName!,
         username: this.registerForm.value.username!,
@@ -60,19 +57,17 @@ export class RegisterComponent {
         password: this.registerForm.value.password!
       };
 
-      this.authService.register(formData).subscribe({
+      this.authService.register(registerData).subscribe({
         next: (response) => {
-          this.successMessage.set('Registration successful! Redirecting to login...');
+          this.isLoading.set(false);
+          this.successMessage.set('Registration successful! Please login.');
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 2000);
         },
         error: (error) => {
-          this.errorMessage.set(error.error?.message || 'Registration failed. Please try again.');
           this.isLoading.set(false);
-        },
-        complete: () => {
-          this.isLoading.set(false);
+          this.errorMessage.set(error.message);
         }
       });
     }

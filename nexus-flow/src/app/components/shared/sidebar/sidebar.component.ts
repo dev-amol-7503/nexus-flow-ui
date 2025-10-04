@@ -2,6 +2,7 @@ import { Component, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { RoleName } from '../../../models/user.model'; // ✅ Import RoleName type
 
 @Component({
   selector: 'app-sidebar',
@@ -16,6 +17,13 @@ export class SidebarComponent {
   
   toggleSidebar = output<void>();
 
+  // ✅ Role constants for template use
+  public readonly ROLES = {
+    ADMIN: 'ROLE_ADMIN' as RoleName,
+    PROJECT_MANAGER: 'ROLE_PROJECT_MANAGER' as RoleName,
+    TEAM_MEMBER: 'ROLE_TEAM_MEMBER' as RoleName
+  };
+
   constructor(private authService: AuthService) {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser.set(user);
@@ -27,7 +35,21 @@ export class SidebarComponent {
     this.toggleSidebar.emit();
   }
 
-  hasRole(role: string): boolean {
+  // ✅ Update method to accept RoleName
+  hasRole(role: RoleName): boolean {
     return this.authService.hasRole(role);
+  }
+
+  // ✅ Helper methods for common role checks
+  isAdmin(): boolean {
+    return this.authService.hasRole(this.ROLES.ADMIN);
+  }
+
+  isProjectManager(): boolean {
+    return this.authService.hasRole(this.ROLES.PROJECT_MANAGER);
+  }
+
+  isTeamMember(): boolean {
+    return this.authService.hasRole(this.ROLES.TEAM_MEMBER);
   }
 }

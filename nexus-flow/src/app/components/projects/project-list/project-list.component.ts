@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,6 +13,8 @@ import { Project, ProjectStatus, Priority } from '../../../models/project.model'
   styleUrls: ['./project-list.component.scss']
 })
 export class ProjectListComponent implements OnInit {
+  private projectService = inject(ProjectService);
+
   public projects = signal<Project[]>([]);
   public filteredProjects = signal<Project[]>([]);
   public isLoading = signal<boolean>(true);
@@ -41,8 +43,6 @@ export class ProjectListComponent implements OnInit {
     { value: 'URGENT', label: 'Urgent' }
   ];
 
-  constructor(private projectService: ProjectService) {}
-
   ngOnInit(): void {
     this.loadProjects();
   }
@@ -52,10 +52,10 @@ export class ProjectListComponent implements OnInit {
     this.projectService.getAllProjects(this.currentPage(), this.pageSize(), 'createdAt,desc')
       .subscribe({
         next: (response) => {
-          this.projects.set(response.content);
-          this.filteredProjects.set(response.content);
-          this.totalItems.set(response.totalElements);
-          this.totalPages.set(response.totalPages);
+          this.projects.set(response.content || []);
+          this.filteredProjects.set(response.content || []);
+          this.totalItems.set(response.totalElements || 0);
+          this.totalPages.set(response.totalPages || 0);
           this.isLoading.set(false);
         },
         error: (error) => {
@@ -100,7 +100,6 @@ export class ProjectListComponent implements OnInit {
     this.filteredProjects.set(filtered);
   }
 
-  // Add missing method
   clearFilters(): void {
     this.searchTerm.set('');
     this.statusFilter.set('ALL');
